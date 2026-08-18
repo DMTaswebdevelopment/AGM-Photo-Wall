@@ -326,7 +326,7 @@
 
   <div id="wallView" class="view">
     <div class="topbar">
-      <div class="brand"><img class="brand-logo" src="/assets/DMTas_Logo_Primary_White.png" alt="DMTas logo" /></div>
+      <div class="brand"><img class="brand-logo" src="/DMTas_Logo_Primary_White.png" alt="DMTas logo" /></div>
       <div class="counter" id="counterLabel">—</div>
     </div>
 
@@ -415,6 +415,9 @@
   let advanceTimer = null;
   let pollTimer = null;
   let wallBuilt = false;
+  let shuffleOrder = [];   // array of photo ids in the current randomized playback order
+  let shufflePos = -1;     // pointer into shuffleOrder
+  let lastShownId = null;  // avoid showing the same photo twice in a row across reshuffles
 
   function renderEmptyState(){
     stage.innerHTML = `
@@ -499,19 +502,60 @@
   function scheduleAdvance(){
     if(advanceTimer) clearInterval(advanceTimer);
     advanceTimer = setInterval(() => {
-      if(wallIndex.length > 1) showPhoto(currentPos + 1);
+      if(wallIndex.length > 1) advanceRandom();
     }, INTERVAL_MS);
+  }
+
+  // Fisher-Yates shuffle of an array of ids
+  function shuffleIds(ids){
+    const arr = ids.slice();
+    for(let i = arr.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // Advances to a random-order next photo. Cycles through every photo once
+  // (in a random order) before reshuffling for the next pass, so photos
+  // don't repeat too soon and every photo gets roughly equal airtime.
+  function advanceRandom(){
+    if(wallIndex.length === 0) return;
+
+    if(shufflePos + 1 >= shuffleOrder.length){
+      shuffleOrder = shuffleIds(wallIndex.map(e => e.id));
+      // avoid immediately repeating the last photo shown at the seam between passes
+      if(shuffleOrder.length > 1 && shuffleOrder[0] === lastShownId){
+        [shuffleOrder[0], shuffleOrder[1]] = [shuffleOrder[1], shuffleOrder[0]];
+      }
+      shufflePos = -1;
+    }
+
+    shufflePos++;
+    const id = shuffleOrder[shufflePos];
+    const idx = wallIndex.findIndex(e => e.id === id);
+    if(idx < 0){
+      // photo was removed since the shuffle was built — skip to the next one
+      advanceRandom();
+      return;
+    }
+    lastShownId = id;
+    showPhoto(idx);
   }
 
   async function pollWall(){
     const freshIndex = await fetchPhotos();
     const hadNone = wallIndex.length === 0;
-    const currentId = wallIndex[currentPos] ? wallIndex[currentPos].id : null;
+    const previousIds = new Set(wallIndex.map(e => e.id));
+    const newlyAddedIds = freshIndex.filter(e => !previousIds.has(e.id)).map(e => e.id);
 
     wallIndex = freshIndex;
 
     if(wallIndex.length === 0){
       renderEmptyState();
+      shuffleOrder = [];
+      shufflePos = -1;
+      lastShownId = null;
       return;
     }
 
@@ -519,15 +563,21 @@
       renderFrame();
     }
 
+    // keep the shuffle order in sync: drop ids that no longer exist,
+    // and slot newly-added photos into the remaining unplayed portion
+    const currentIds = new Set(wallIndex.map(e => e.id));
+    shuffleOrder = shuffleOrder.filter(id => currentIds.has(id));
+    if(shufflePos >= shuffleOrder.length) shufflePos = shuffleOrder.length - 1;
+    newlyAddedIds.forEach(id => {
+      const start = shufflePos + 1;
+      const insertAt = start + Math.floor(Math.random() * Math.max(1, shuffleOrder.length - start + 1));
+      shuffleOrder.splice(insertAt, 0, id);
+    });
+
     if(hadNone){
-      showPhoto(0);
+      advanceRandom();
       scheduleAdvance();
     } else {
-      // keep pointing at the same photo if it still exists
-      if(currentId){
-        const stillAt = wallIndex.findIndex(e => e.id === currentId);
-        if(stillAt >= 0) currentPos = stillAt;
-      }
       updateCounter();
     }
   }
@@ -548,7 +598,7 @@
 
   function renderSubmitForm(){
     submitCard.innerHTML = `
-      <img class="brand-logo" src="/assets/DMTas_Logo_Primary_White.png" alt="DMTas logo" style="height:22px; margin-bottom:18px;" />
+      <img class="brand-logo" src="/DMTas_Logo_Primary_White.png" alt="DMTas logo" style="height:22px; margin-bottom:18px;" />
       <div class="eyebrow">No. of 40</div>
       <h1>Add your photo</h1>
       <p class="lede">
