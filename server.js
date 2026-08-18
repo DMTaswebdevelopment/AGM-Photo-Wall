@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const os = require('os');
+const archiver = require('archiver');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ const DATA_DIR = process.env.DATA_DIR
   : path.join(__dirname, 'data');
 
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const ASSETS_DIR = path.join(__dirname, 'assets'); // top-level assets folder (e.g. logo files)
 const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const INDEX_FILE = path.join(DATA_DIR, 'index.json');
 
@@ -25,6 +27,7 @@ if (!fs.existsSync(INDEX_FILE)) fs.writeFileSync(INDEX_FILE, '[]');
 
 app.use(express.json({ limit: '15mb' })); // photos arrive as base64 JSON
 app.use(express.static(PUBLIC_DIR));
+app.use('/assets', express.static(ASSETS_DIR)); // serves the repo's top-level assets/ folder
 app.use('/uploads', express.static(UPLOADS_DIR)); // photos now live outside /public
 
 function readIndex() {
@@ -95,12 +98,51 @@ app.delete('/api/photos/:id', (req, res) => {
   writeIndex(idx);
 
   try {
-    fs.unlinkSync(path.join(PUBLIC_DIR, entry.url));
+    fs.unlinkSync(path.join(UPLOADS_DIR, path.basename(entry.url)));
   } catch (e) {
     // file already gone — fine
   }
 
   res.json({ ok: true });
+});
+
+// Download every photo (plus a manifest of names/captions) as one zip file.
+// Visit /admin/download-all in a browser to trigger the download.
+// If ADMIN_KEY is set as an environment variable, you must add ?key=yourkey
+// to the URL — without it, this endpoint is open to anyone who knows the URL.
+app.get('/admin/download-all', (req, res) => {
+  const adminKey = process.env.ADMIN_KEY;
+  if (adminKey && req.query.key !== adminKey) {
+    return res.status(403).send('Forbidden — add ?key=... to the URL.');
+  }
+
+  const idx = readIndex();
+
+  res.attachment(`photo-wall-export-${new Date().toISOString().slice(0, 10)}.zip`);
+  const archive = archiver('zip', { zlib: { level: 9 } });
+
+  archive.on('error', (err) => {
+    console.error('Zip export error:', err);
+    if (!res.headersSent) res.status(500).end();
+  });
+
+  archive.pipe(res);
+
+  idx.forEach((entry, i) => {
+    const filePath = path.join(UPLOADS_DIR, path.basename(entry.url));
+    if (!fs.existsSync(filePath)) return;
+    const label = [entry.name, entry.caption]
+      .filter(Boolean)
+      .join(' - ')
+      .replace(/[^a-z0-9\- ]/gi, '')
+      .trim();
+    const ext = path.extname(filePath);
+    const niceName = `${String(i + 1).padStart(3, '0')}_${label || 'photo'}${ext}`;
+    archive.file(filePath, { name: niceName });
+  });
+
+  archive.append(JSON.stringify(idx, null, 2), { name: 'photo-manifest.json' });
+  archive.finalize();
 });
 
 function getLanAddress() {
