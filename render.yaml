@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: photo-wall
+    name: dmtas40
     runtime: node
     plan: free
     buildCommand: npm install
