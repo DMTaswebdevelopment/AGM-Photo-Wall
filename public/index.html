@@ -17,6 +17,8 @@
     --muted:#8B8F99;
     --line: rgba(201,162,39,0.28);
     --danger:#D97757;
+    --cta-red:#E5484D;
+    --cta-red-hover:#F16A6E;
     --interval: 6000ms;
   }
   *{box-sizing:border-box;}
@@ -62,7 +64,7 @@
     z-index:3;
   }
   .brand{ display:flex; align-items:center; gap:10px; color:var(--gold-soft); }
-  .brand .dot{ width:5px; height:5px; border-radius:50%; background:var(--gold); }
+  .brand-logo{ height:20px; width:auto; display:block; }
   .counter{ font-variant-numeric: tabular-nums; color:var(--muted); }
   .counter b{ color:var(--gold-soft); font-weight:600; }
 
@@ -130,7 +132,7 @@
 
   .empty-state{
     display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:18px; text-align:center; padding:40px;
+    gap:20px; text-align:center; padding:40px;
     color:var(--muted);
   }
   .empty-state h1{
@@ -140,16 +142,39 @@
   .empty-state p{ margin:0; max-width:44ch; line-height:1.6; font-size:14px; }
   .empty-state .tags{ color:var(--gold-soft); letter-spacing:0.08em; font-size:13px; }
 
+  .btn-cta-large{
+    display:inline-flex; align-items:center; gap:12px;
+    padding:20px 40px;
+    background:var(--cta-red); color:#fff;
+    font-size:18px; font-weight:700;
+    letter-spacing:0.01em;
+    text-decoration:none;
+    border:none; cursor:pointer;
+    box-shadow: 0 8px 24px rgba(229,72,77,0.35);
+    transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  }
+  .btn-cta-large:hover, .btn-cta-large:active{
+    background:var(--cta-red-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(229,72,77,0.45);
+  }
+  .btn-cta-large .arrow{ transition:transform 200ms ease; }
+  .btn-cta-large:hover .arrow{ transform:translateX(4px); }
+
   .cta-corner{
     position:absolute; bottom:26px; right:28px;
-    font-size:12px; letter-spacing:0.06em;
-    color:var(--muted);
+    font-size:14px; font-weight:700; letter-spacing:0.02em;
+    color:#fff;
     display:flex; align-items:center; gap:8px;
     text-decoration:none;
+    background:var(--cta-red);
+    padding:12px 22px;
+    box-shadow: 0 6px 20px rgba(229,72,77,0.35);
     z-index:3;
+    transition: background 150ms ease, transform 150ms ease;
   }
-  .cta-corner:hover{ color:var(--gold-soft); }
-  .cta-corner .arrow{ color:var(--gold); transition:transform 200ms ease; }
+  .cta-corner:hover{ background:var(--cta-red-hover); transform:translateY(-1px); }
+  .cta-corner .arrow{ transition:transform 200ms ease; }
   .cta-corner:hover .arrow{ transform:translateX(3px); }
 
   .submit-wrap{
@@ -178,26 +203,59 @@
   }
   .card p.lede .tags{ color:var(--gold-soft); }
 
-  .drop{
-    aspect-ratio:1/1;
-    width:100%;
-    border:1px dashed var(--line);
-    background:var(--panel-2);
+  .visually-hidden{
+    position:absolute !important;
+    width:1px; height:1px;
+    padding:0; margin:-1px;
+    overflow:hidden;
+    clip:rect(0,0,0,0);
+    white-space:nowrap;
+    border:0;
+  }
+
+  .upload-actions{
+    display:flex; flex-direction:column; gap:12px;
+    margin-bottom:20px;
+  }
+  .btn-camera{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:18px 16px;
+    background:var(--gold); color:var(--ink);
+    font-weight:700; font-size:15px;
+    cursor:pointer; border:none;
+    transition: background 150ms ease;
+  }
+  .btn-camera:hover, .btn-camera:active{ background:var(--gold-soft); }
+  .btn-camera .icon{ font-size:20px; line-height:1; }
+
+  .btn-secondary{
     display:flex; align-items:center; justify-content:center;
+    width:100%; padding:14px 16px;
+    background:transparent; color:var(--gold-soft);
+    border:1px solid var(--line);
+    font-size:13px; letter-spacing:0.04em;
+    cursor:pointer;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+  .btn-secondary:hover, .btn-secondary:active{ border-color:var(--gold); color:var(--cream); }
+
+  .preview-square{
     position:relative;
+    width:100%; aspect-ratio:1/1;
     overflow:hidden;
     margin-bottom:20px;
+    border:1px solid var(--line);
+    background:#000;
+  }
+  .preview-square img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .retake-btn{
+    position:absolute; bottom:10px; right:10px;
+    background:rgba(11,13,18,0.8); color:var(--cream);
+    border:1px solid var(--line);
+    padding:9px 16px; font-size:12px; letter-spacing:0.05em;
     cursor:pointer;
   }
-  .drop img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-  .drop .drop-msg{
-    display:flex; flex-direction:column; align-items:center; gap:8px;
-    color:var(--muted); font-size:13px; text-align:center; padding:20px;
-  }
-  .drop .drop-msg .icon{ font-size:22px; color:var(--gold); }
-  .drop input[type=file]{
-    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
-  }
+  .retake-btn:hover, .retake-btn:active{ border-color:var(--gold); color:var(--gold-soft); }
 
   label.field-label{
     display:block; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
@@ -268,7 +326,7 @@
 
   <div id="wallView" class="view">
     <div class="topbar">
-      <div class="brand"><span class="dot"></span> AGM 40 · DMTas</div>
+      <div class="brand"><img class="brand-logo" src="/logo.png" alt="DMTas logo" /></div>
       <div class="counter" id="counterLabel">—</div>
     </div>
 
@@ -362,12 +420,15 @@
     stage.innerHTML = `
       <div class="empty-state">
         <h1>The wall is warming up</h1>
-        <p>First photo hasn't landed yet. Tag <span class="tags">#DMTas40</span> or
-        <span class="tags">#AGM40</span>, or add one directly from your phone.</p>
+        <p>First photo hasn't landed yet. Tag <span class="tags">#DMTasTurns40</span>,
+        or add one directly from your phone.</p>
+        <a href="#submit" class="btn-cta-large">Add Your Photo <span class="arrow">→</span></a>
       </div>
     `;
     counterLabel.textContent = "No photos yet";
     wallBuilt = false;
+    const cornerCta = document.getElementById("wallCta");
+    if(cornerCta) cornerCta.hidden = true;
   }
 
   function renderFrame(){
@@ -379,10 +440,12 @@
       </div>
       <div class="caption-row">
         <span class="who" id="whoLabel">&nbsp;</span>
-        <span class="tags">#DMTas40 · #AGM40</span>
+        <span class="tags">#DMTasTurns40</span>
       </div>
     `;
     wallBuilt = true;
+    const cornerCta = document.getElementById("wallCta");
+    if(cornerCta) cornerCta.hidden = false;
   }
 
   function updateCounter(){
@@ -485,21 +548,29 @@
 
   function renderSubmitForm(){
     submitCard.innerHTML = `
+      <img class="brand-logo" src="/logo.png" alt="DMTas logo" style="height:22px; margin-bottom:18px;" />
       <div class="eyebrow">No. of 40</div>
       <h1>Add your photo</h1>
       <p class="lede">
-        Tagged it on Instagram or Facebook? Great — also drop it here so it shows up
-        on the big screen. <span class="tags">#DMTas40 · #AGM40</span>
+        Tagged it on Instagram or Facebook? Great — also add it here so it shows up
+        on the big screen. <span class="tags">#DMTasTurns40</span>
       </p>
 
       <form id="uploadForm" novalidate>
-        <div class="drop" id="dropZone">
-          <div class="drop-msg" id="dropMsg">
-            <span class="icon">＋</span>
-            <span>Tap to choose a photo<br>(cropped to a square)</span>
-          </div>
-          <img id="previewImg" hidden alt="Your photo preview" />
-          <input type="file" accept="image/*" id="fileInput" />
+
+        <div class="upload-actions" id="uploadActions">
+          <label class="btn-camera" for="cameraInput">
+            <span class="icon">📷</span> Take a Photo
+          </label>
+          <input type="file" accept="image/*" capture="environment" id="cameraInput" class="visually-hidden" />
+
+          <label class="btn-secondary" for="galleryInput">Choose from Gallery</label>
+          <input type="file" accept="image/*" id="galleryInput" class="visually-hidden" />
+        </div>
+
+        <div class="preview-square" id="previewSquare" hidden>
+          <img id="previewImg" alt="Your photo preview" />
+          <button type="button" class="retake-btn" id="retakeBtn">Retake</button>
         </div>
 
         <div class="field">
@@ -522,9 +593,12 @@
     `;
 
     let pendingDataUrl = null;
-    const fi = document.getElementById("fileInput");
+    const cameraInput = document.getElementById("cameraInput");
+    const galleryInput = document.getElementById("galleryInput");
+    const uploadActions = document.getElementById("uploadActions");
+    const previewSquare = document.getElementById("previewSquare");
     const pi = document.getElementById("previewImg");
-    const dm = document.getElementById("dropMsg");
+    const retakeBtn = document.getElementById("retakeBtn");
     const uf = document.getElementById("uploadForm");
     const sb = document.getElementById("submitBtn");
     const sm = document.getElementById("statusMsg");
@@ -536,16 +610,15 @@
       sc.textContent = list.length ? `${list.length} photo${list.length === 1 ? "" : "s"} on the wall` : "";
     });
 
-    fi.addEventListener("change", async (e) => {
-      const file = e.target.files && e.target.files[0];
+    async function handleFile(file){
       if(!file) return;
       sm.textContent = ""; sm.className = "status-msg";
       try{
         const img = await loadImageFromFile(file);
         pendingDataUrl = cropToSquare(img, 1080);
         pi.src = pendingDataUrl;
-        pi.hidden = false;
-        dm.hidden = true;
+        previewSquare.hidden = false;
+        uploadActions.hidden = true;
         sb.disabled = false;
       }catch(err){
         sm.textContent = "Couldn't read that image — try a different photo.";
@@ -553,6 +626,24 @@
         pendingDataUrl = null;
         sb.disabled = true;
       }
+    }
+
+    cameraInput.addEventListener("change", (e) => {
+      handleFile(e.target.files && e.target.files[0]);
+    });
+    galleryInput.addEventListener("change", (e) => {
+      handleFile(e.target.files && e.target.files[0]);
+    });
+
+    retakeBtn.addEventListener("click", () => {
+      pendingDataUrl = null;
+      pi.src = "";
+      previewSquare.hidden = true;
+      uploadActions.hidden = false;
+      sb.disabled = true;
+      cameraInput.value = "";
+      galleryInput.value = "";
+      sm.textContent = ""; sm.className = "status-msg";
     });
 
     uf.addEventListener("submit", async (e) => {
