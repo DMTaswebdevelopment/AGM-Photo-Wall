@@ -326,7 +326,7 @@
 
   <div id="wallView" class="view">
     <div class="topbar">
-      <div class="brand"><img class="brand-logo" src="/logo.png" alt="DMTas logo" /></div>
+      <div class="brand"><img class="brand-logo" src="/assets/DMTas_Logo_Primary_White.png" alt="DMTas logo" /></div>
       <div class="counter" id="counterLabel">—</div>
     </div>
 
@@ -420,9 +420,9 @@
     stage.innerHTML = `
       <div class="empty-state">
         <h1>The wall is warming up</h1>
+        <a href="#submit" class="btn-cta-large">Add Your Photo <span class="arrow">→</span></a>
         <p>First photo hasn't landed yet. Tag <span class="tags">#DMTasTurns40</span>,
         or add one directly from your phone.</p>
-        <a href="#submit" class="btn-cta-large">Add Your Photo <span class="arrow">→</span></a>
       </div>
     `;
     counterLabel.textContent = "No photos yet";
@@ -548,7 +548,7 @@
 
   function renderSubmitForm(){
     submitCard.innerHTML = `
-      <img class="brand-logo" src="/logo.png" alt="DMTas logo" style="height:22px; margin-bottom:18px;" />
+      <img class="brand-logo" src="/assets/DMTas_Logo_Primary_White.png" alt="DMTas logo" style="height:22px; margin-bottom:18px;" />
       <div class="eyebrow">No. of 40</div>
       <h1>Add your photo</h1>
       <p class="lede">
