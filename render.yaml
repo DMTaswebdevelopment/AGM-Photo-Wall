@@ -2,13 +2,6 @@ services:
   - type: web
     name: photo-wall
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install
     startCommand: npm start
-    envVars:
-      - key: DATA_DIR
-        value: /var/data
-    disk:
-      name: photo-wall-data
-      mountPath: /var/data
-      sizeGB: 1
