@@ -1,0 +1,13 @@
+{
+  "name": "AGM project",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local photo wall for AGM 40 / DMTas40 — displays uploaded event photos one at a time.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AGM 40 — Photo Wall</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0B0D12;
+    --panel:#14171F;
+    --panel-2:#1B1F29;
+    --gold:#C9A227;
+    --gold-soft:#E4C766;
+    --cream:#EDE8DD;
+    --muted:#8B8F99;
+    --line: rgba(201,162,39,0.28);
+    --danger:#D97757;
+    --interval: 6000ms;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--cream);
+    font-family:'Inter',system-ui,sans-serif;
+    overflow:hidden;
+  }
+  ::selection{ background:var(--gold); color:var(--ink); }
+  a{ color:inherit; }
+  button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--gold-soft); outline-offset:3px; }
+
+  .bg-numeral{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Fraunces', serif;
+    font-weight:300;
+    font-size:min(60vw, 60vh);
+    color:var(--gold);
+    opacity:0.045;
+    letter-spacing:-0.04em;
+    pointer-events:none;
+    user-select:none;
+    z-index:0;
+  }
+
+  #app{ position:relative; z-index:1; height:100vh; width:100vw; }
+  .view{ height:100%; width:100%; }
+  [hidden]{ display:none !important; }
+
+  .topbar{
+    position:absolute; top:0; left:0; right:0;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:22px 28px;
+    font-size:12px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    z-index:3;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; color:var(--gold-soft); }
+  .brand .dot{ width:5px; height:5px; border-radius:50%; background:var(--gold); }
+  .counter{ font-variant-numeric: tabular-nums; color:var(--muted); }
+  .counter b{ color:var(--gold-soft); font-weight:600; }
+
+  .stage{
+    height:100%; width:100%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:90px 24px 64px;
+  }
+  .frame{
+    position:relative;
+    width:min(78vh, 82vw);
+    aspect-ratio:1/1;
+    border:1px solid var(--line);
+    padding:14px;
+    background:var(--panel);
+  }
+  .frame::before, .frame::after,
+  .frame .tick-br, .frame .tick-bl{
+    content:''; position:absolute; width:14px; height:14px;
+    border-color:var(--gold-soft); opacity:0.9;
+  }
+  .frame::before{ top:-1px; left:-1px; border-top:2px solid var(--gold-soft); border-left:2px solid var(--gold-soft); }
+  .frame::after{ top:-1px; right:-1px; border-top:2px solid var(--gold-soft); border-right:2px solid var(--gold-soft); }
+  .frame .tick-bl{ bottom:-1px; left:-1px; border-bottom:2px solid var(--gold-soft); border-left:2px solid var(--gold-soft); }
+  .frame .tick-br{ bottom:-1px; right:-1px; border-bottom:2px solid var(--gold-soft); border-right:2px solid var(--gold-soft); }
+
+  .progress-track{
+    position:absolute; top:-1px; left:14px; right:14px; height:2px;
+    background:rgba(255,255,255,0.06);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%; width:0%;
+    background:var(--gold);
+  }
+  .progress-fill.animating{
+    animation: fillProgress var(--interval) linear forwards;
+  }
+  @keyframes fillProgress{ from{ width:0%; } to{ width:100%; } }
+
+  .photo-well{
+    position:relative;
+    width:100%; height:100%;
+    overflow:hidden;
+    background:#000;
+  }
+  .photo-well img{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    opacity:0;
+    transition: opacity 900ms ease;
+  }
+  .photo-well img.active{ opacity:1; }
+
+  .caption-row{
+    width:min(78vh, 82vw);
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin-top:18px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .caption-row .who{ color:var(--cream); font-weight:500; }
+  .caption-row .tags{ letter-spacing:0.08em; color:var(--gold-soft); font-size:12px; }
+
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; text-align:center; padding:40px;
+    color:var(--muted);
+  }
+  .empty-state h1{
+    font-family:'Fraunces', serif; font-weight:500; font-size:28px;
+    color:var(--cream); margin:0;
+  }
+  .empty-state p{ margin:0; max-width:44ch; line-height:1.6; font-size:14px; }
+  .empty-state .tags{ color:var(--gold-soft); letter-spacing:0.08em; font-size:13px; }
+
+  .cta-corner{
+    position:absolute; bottom:26px; right:28px;
+    font-size:12px; letter-spacing:0.06em;
+    color:var(--muted);
+    display:flex; align-items:center; gap:8px;
+    text-decoration:none;
+    z-index:3;
+  }
+  .cta-corner:hover{ color:var(--gold-soft); }
+  .cta-corner .arrow{ color:var(--gold); transition:transform 200ms ease; }
+  .cta-corner:hover .arrow{ transform:translateX(3px); }
+
+  .submit-wrap{
+    height:100%; width:100%; overflow-y:auto;
+    display:flex; align-items:center; justify-content:center;
+    padding:48px 20px;
+  }
+  .card{
+    width:100%; max-width:420px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:36px 30px 30px;
+  }
+  .eyebrow{
+    font-size:11px; letter-spacing:0.16em; text-transform:uppercase;
+    color:var(--gold-soft); margin-bottom:10px;
+  }
+  .card h1{
+    font-family:'Fraunces', serif; font-weight:500;
+    font-size:26px; margin:0 0 12px;
+    color:var(--cream);
+  }
+  .card p.lede{
+    color:var(--muted); font-size:14px; line-height:1.6;
+    margin:0 0 28px;
+  }
+  .card p.lede .tags{ color:var(--gold-soft); }
+
+  .drop{
+    aspect-ratio:1/1;
+    width:100%;
+    border:1px dashed var(--line);
+    background:var(--panel-2);
+    display:flex; align-items:center; justify-content:center;
+    position:relative;
+    overflow:hidden;
+    margin-bottom:20px;
+    cursor:pointer;
+  }
+  .drop img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+  .drop .drop-msg{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    color:var(--muted); font-size:13px; text-align:center; padding:20px;
+  }
+  .drop .drop-msg .icon{ font-size:22px; color:var(--gold); }
+  .drop input[type=file]{
+    position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;
+  }
+
+  label.field-label{
+    display:block; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:6px;
+  }
+  .field{ margin-bottom:16px; }
+  input[type=text]{
+    width:100%; background:var(--panel-2); border:1px solid var(--line);
+    color:var(--cream); font-size:14px; padding:11px 12px;
+    font-family:inherit;
+  }
+  input[type=text]::placeholder{ color:#5c6070; }
+
+  .btn-gold{
+    width:100%; padding:13px 16px; margin-top:6px;
+    background:var(--gold); color:var(--ink);
+    border:none; font-weight:600; font-size:13px;
+    letter-spacing:0.04em; text-transform:uppercase;
+    cursor:pointer;
+    transition: background 150ms ease, opacity 150ms ease;
+  }
+  .btn-gold:hover{ background:var(--gold-soft); }
+  .btn-gold:disabled{ opacity:0.4; cursor:not-allowed; }
+
+  .status-msg{
+    margin-top:14px; font-size:13px; text-align:center;
+    color:var(--muted); min-height:18px;
+  }
+  .status-msg.err{ color:var(--danger); }
+  .status-msg.ok{ color:var(--gold-soft); }
+
+  .card-nav{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:22px; padding-top:18px; border-top:1px solid var(--line);
+    font-size:12px;
+  }
+  .card-nav a{ color:var(--muted); text-decoration:none; }
+  .card-nav a:hover{ color:var(--gold-soft); }
+
+  .success{
+    display:flex; flex-direction:column; align-items:center; text-align:center; gap:14px;
+  }
+  .success .check{
+    width:44px; height:44px; border-radius:50%;
+    border:1px solid var(--gold);
+    display:flex; align-items:center; justify-content:center;
+    color:var(--gold-soft); font-size:20px;
+  }
+
+  @media (max-width: 480px){
+    .frame{ width:88vw; }
+    .caption-row{ width:88vw; }
+    .topbar{ padding:16px 18px; font-size:10px; }
+    .cta-corner{ right:18px; bottom:18px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .photo-well img{ transition:none; }
+    .progress-fill.animating{ animation:none; width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-numeral">40</div>
+
+<div id="app">
+
+  <div id="wallView" class="view">
+    <div class="topbar">
+      <div class="brand"><span class="dot"></span> AGM 40 · DMTas</div>
+      <div class="counter" id="counterLabel">—</div>
+    </div>
+
+    <div class="stage" id="stage"></div>
+
+    <a href="#submit" class="cta-corner" id="wallCta">
+      Add your photo <span class="arrow">→</span>
+    </a>
+  </div>
+
+  <div id="submitView" class="view" hidden>
+    <div class="submit-wrap">
+      <div class="card" id="submitCard"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const INTERVAL_MS = 6000;
+  const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---------- API helpers ----------
+  async function fetchPhotos(){
+    try{
+      const res = await fetch('/api/photos');
+      if(!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    }catch(e){
+      return [];
+    }
+  }
+
+  async function uploadPhoto(dataUrl, name, caption){
+    const res = await fetch('/api/photos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, name, caption })
+    });
+    if(!res.ok){
+      let msg = 'Something went wrong.';
+      try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  // ---------- image crop-to-square ----------
+  function cropToSquare(img, maxSize){
+    const size = Math.min(img.naturalWidth, img.naturalHeight);
+    const sx = (img.naturalWidth - size) / 2;
+    const sy = (img.naturalHeight - size) / 2;
+    const target = Math.min(size, maxSize || 1080);
+    const canvas = document.createElement("canvas");
+    canvas.width = target;
+    canvas.height = target;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, sx, sy, size, size, 0, 0, target, target);
+    return canvas.toDataURL("image/jpeg", 0.82);
+  }
+
+  function loadImageFromFile(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("Could not read file"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Could not load image"));
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ================= WALL VIEW =================
+  const stage = document.getElementById("stage");
+  const counterLabel = document.getElementById("counterLabel");
+
+  let wallIndex = [];
+  let currentPos = 0;
+  let advanceTimer = null;
+  let pollTimer = null;
+  let wallBuilt = false;
+
+  function renderEmptyState(){
+    stage.innerHTML = `
+      <div class="empty-state">
+        <h1>The wall is warming up</h1>
+        <p>First photo hasn't landed yet. Tag <span class="tags">#DMTas40</span> or
+        <span class="tags">#AGM40</span>, or add one directly from your phone.</p>
+      </div>
+    `;
+    counterLabel.textContent = "No photos yet";
+    wallBuilt = false;
+  }
+
+  function renderFrame(){
+    stage.innerHTML = `
+      <div class="frame">
+        <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="photo-well" id="photoWell"></div>
+        <div class="tick-bl"></div><div class="tick-br"></div>
+      </div>
+      <div class="caption-row">
+        <span class="who" id="whoLabel">&nbsp;</span>
+        <span class="tags">#DMTas40 · #AGM40</span>
+      </div>
+    `;
+    wallBuilt = true;
+  }
+
+  function updateCounter(){
+    if(wallIndex.length === 0){
+      counterLabel.textContent = "No photos yet";
+      return;
+    }
+    const n = String(currentPos + 1).padStart(3, "0");
+    const total = String(wallIndex.length).padStart(3, "0");
+    counterLabel.innerHTML = `No. <b>${n}</b> / ${total}`;
+  }
+
+  function showPhoto(pos){
+    if(wallIndex.length === 0) return;
+    currentPos = ((pos % wallIndex.length) + wallIndex.length) % wallIndex.length;
+    const entry = wallIndex[currentPos];
+    const well = document.getElementById("photoWell");
+    const who = document.getElementById("whoLabel");
+    if(!well) return;
+
+    const img = document.createElement("img");
+    img.src = entry.url;
+    img.alt = entry.caption || "Event photo";
+    well.innerHTML = "";
+    well.appendChild(img);
+    requestAnimationFrame(() => img.classList.add("active"));
+
+    if(who){
+      const bits = [];
+      if(entry.name) bits.push(entry.name);
+      if(entry.caption) bits.push(entry.caption);
+      who.textContent = bits.join(" — ") || "\u00A0";
+    }
+
+    updateCounter();
+    restartProgress();
+  }
+
+  function restartProgress(){
+    const fill = document.getElementById("progressFill");
+    if(!fill) return;
+    fill.classList.remove("animating");
+    void fill.offsetWidth;
+    if(!prefersReduced && wallIndex.length > 1){
+      fill.classList.add("animating");
+    } else {
+      fill.style.width = "100%";
+    }
+  }
+
+  function scheduleAdvance(){
+    if(advanceTimer) clearInterval(advanceTimer);
+    advanceTimer = setInterval(() => {
+      if(wallIndex.length > 1) showPhoto(currentPos + 1);
+    }, INTERVAL_MS);
+  }
+
+  async function pollWall(){
+    const freshIndex = await fetchPhotos();
+    const hadNone = wallIndex.length === 0;
+    const currentId = wallIndex[currentPos] ? wallIndex[currentPos].id : null;
+
+    wallIndex = freshIndex;
+
+    if(wallIndex.length === 0){
+      renderEmptyState();
+      return;
+    }
+
+    if(!wallBuilt){
+      renderFrame();
+    }
+
+    if(hadNone){
+      showPhoto(0);
+      scheduleAdvance();
+    } else {
+      // keep pointing at the same photo if it still exists
+      if(currentId){
+        const stillAt = wallIndex.findIndex(e => e.id === currentId);
+        if(stillAt >= 0) currentPos = stillAt;
+      }
+      updateCounter();
+    }
+  }
+
+  function startWall(){
+    pollWall();
+    if(pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollWall, 5000);
+  }
+
+  function stopWall(){
+    if(advanceTimer) clearInterval(advanceTimer);
+    if(pollTimer) clearInterval(pollTimer);
+  }
+
+  // ================= SUBMIT VIEW =================
+  const submitCard = document.getElementById("submitCard");
+
+  function renderSubmitForm(){
+    submitCard.innerHTML = `
+      <div class="eyebrow">No. of 40</div>
+      <h1>Add your photo</h1>
+      <p class="lede">
+        Tagged it on Instagram or Facebook? Great — also drop it here so it shows up
+        on the big screen. <span class="tags">#DMTas40 · #AGM40</span>
+      </p>
+
+      <form id="uploadForm" novalidate>
+        <div class="drop" id="dropZone">
+          <div class="drop-msg" id="dropMsg">
+            <span class="icon">＋</span>
+            <span>Tap to choose a photo<br>(cropped to a square)</span>
+          </div>
+          <img id="previewImg" hidden alt="Your photo preview" />
+          <input type="file" accept="image/*" id="fileInput" />
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="nameInput">Your name (optional)</label>
+          <input type="text" id="nameInput" placeholder="e.g. Priya" maxlength="40" />
+        </div>
+        <div class="field">
+          <label class="field-label" for="captionInput">Caption (optional)</label>
+          <input type="text" id="captionInput" placeholder="A moment from tonight" maxlength="80" />
+        </div>
+
+        <button type="submit" class="btn-gold" id="submitBtn" disabled>Add to the wall</button>
+        <div class="status-msg" id="statusMsg"></div>
+      </form>
+
+      <div class="card-nav">
+        <a href="#wall">← View the wall</a>
+        <span id="submitCounter" style="color:var(--muted);"></span>
+      </div>
+    `;
+
+    let pendingDataUrl = null;
+    const fi = document.getElementById("fileInput");
+    const pi = document.getElementById("previewImg");
+    const dm = document.getElementById("dropMsg");
+    const uf = document.getElementById("uploadForm");
+    const sb = document.getElementById("submitBtn");
+    const sm = document.getElementById("statusMsg");
+    const ni = document.getElementById("nameInput");
+    const ci = document.getElementById("captionInput");
+    const sc = document.getElementById("submitCounter");
+
+    fetchPhotos().then(list => {
+      sc.textContent = list.length ? `${list.length} photo${list.length === 1 ? "" : "s"} on the wall` : "";
+    });
+
+    fi.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if(!file) return;
+      sm.textContent = ""; sm.className = "status-msg";
+      try{
+        const img = await loadImageFromFile(file);
+        pendingDataUrl = cropToSquare(img, 1080);
+        pi.src = pendingDataUrl;
+        pi.hidden = false;
+        dm.hidden = true;
+        sb.disabled = false;
+      }catch(err){
+        sm.textContent = "Couldn't read that image — try a different photo.";
+        sm.className = "status-msg err";
+        pendingDataUrl = null;
+        sb.disabled = true;
+      }
+    });
+
+    uf.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if(!pendingDataUrl){
+        sm.textContent = "Choose a photo first.";
+        sm.className = "status-msg err";
+        return;
+      }
+      sb.disabled = true;
+      sm.textContent = "Adding your photo…";
+      sm.className = "status-msg";
+
+      try{
+        const entry = await uploadPhoto(pendingDataUrl, ni.value, ci.value);
+        const list = await fetchPhotos();
+        showSuccess(list.length);
+      }catch(err){
+        sm.textContent = err.message || "Something went wrong. Try again.";
+        sm.className = "status-msg err";
+        sb.disabled = false;
+      }
+    });
+  }
+
+  function showSuccess(total){
+    submitCard.innerHTML = `
+      <div class="success">
+        <div class="check">✓</div>
+        <h1 style="margin:0;">You're on the wall</h1>
+        <p class="lede" style="margin:0;">Photo No. ${String(total).padStart(3,"0")} — it'll appear on the big screen shortly.</p>
+        <div style="display:flex; gap:12px; width:100%; margin-top:8px;">
+          <a href="#wall" class="btn-gold" style="display:flex;align-items:center;justify-content:center;text-decoration:none;">View the wall</a>
+        </div>
+        <a href="#submit" id="addAnotherLink" style="font-size:12px; color:var(--muted); text-decoration:none; margin-top:4px;">+ Add another photo</a>
+      </div>
+    `;
+    document.getElementById("addAnotherLink").addEventListener("click", (e) => {
+      e.preventDefault();
+      renderSubmitForm();
+    });
+  }
+
+  // ================= ROUTER =================
+  const wallView = document.getElementById("wallView");
+  const submitView = document.getElementById("submitView");
+
+  function route(){
+    const hash = location.hash.replace("#", "");
+    if(hash === "submit"){
+      wallView.hidden = true;
+      submitView.hidden = false;
+      stopWall();
+      renderSubmitForm();
+    } else {
+      submitView.hidden = true;
+      wallView.hidden = false;
+      startWall();
+    }
+  }
+
+  window.addEventListener("hashchange", route);
+  route();
+})();
+</script>
+</body>
+</html>
